@@ -24,7 +24,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
 
     // Must be a full absolute URL — e.g. http://localhost:3000/oauth2/redirect
-    @Value("${app.frontend.redirect-url:http://localhost:3000/oauth2/redirect}")
+    @Value("${app.frontend.redirect-url:https://expense-tracker-frontend-aydi.onrender.com/oauth2/redirect}")
     private String frontendRedirectUrl;
 
     @Override
@@ -56,7 +56,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         } catch (Exception e) {
             log.error("OAuth2 success handler failed: {}", e.getMessage(), e);
-            response.sendRedirect("http://localhost:3000/login?error=oauth_failed");
+            response.sendRedirect("https://expense-tracker-frontend-aydi.onrender.com/login?error=oauth_failed");
         }
     }
 }

@@ -40,10 +40,10 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final UserDetailsServiceImpl userDetailsService;
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:https://expense-tracker-frontend-aydi.onrender.com}")
     private String allowedOrigins;
 
-    @Value("${app.frontend.redirect-url:http://localhost:3000/oauth2/dashboard}")
+    @Value("${app.frontend.redirect-url:https://expense-tracker-frontend-aydi.onrender.com/oauth2/dashboard}")
     private String frontendRedirectUrl;
 
     @Bean
@@ -70,7 +70,7 @@ public class SecurityConfig {
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler((request, response, exception) -> {
                             log.error("OAuth2 login failed: {}", exception.getMessage(), exception);
-                            response.sendRedirect("http://localhost:3000/login?error=oauth_failed");
+                            response.sendRedirect("https://expense-tracker-frontend-aydi.onrender.com/login?error=oauth_failed");
                         })
                 )
                 .authenticationProvider(authenticationProvider())
