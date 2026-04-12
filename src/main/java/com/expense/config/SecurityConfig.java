@@ -2,7 +2,6 @@ package com.expense.config;
 
 import com.expense.service.CustomOAuth2UserService;
 import com.expense.service.UserDetailsServiceImpl;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,15 +42,25 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:https://expense-tracker-frontend-aydi.onrender.com}")
     private String allowedOrigins;
 
-    @Value("${app.frontend.redirect-url:https://expense-tracker-frontend-aydi.onrender.com/oauth2/dashboard}")
-    private String frontendRedirectUrl;
+    @Value("${app.frontend.base-url:https://expense-tracker-frontend-aydi.onrender.com}")
+    private String frontendBaseUrl;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // OAuth2 requires a session briefly during the OAuth flow — use IF_REQUIRED
+                // Trust the X-Forwarded-* headers from Render's reverse proxy
+                // This makes {baseUrl} resolve to https:// instead of http://
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(info -> info.userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler((request, response, exception) -> {
+                            log.error("OAuth2 login failed: {}", exception.getMessage(), exception);
+                            String redirectUrl = frontendBaseUrl + "/login?error=oauth_failed";
+                            response.sendRedirect(redirectUrl);
+                        })
+                )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
@@ -64,14 +73,6 @@ public class SecurityConfig {
                                 "/actuator/health"
                         ).permitAll()
                         .anyRequest().authenticated()
-                )
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(info -> info.userService(customOAuth2UserService))
-                        .successHandler(oAuth2SuccessHandler)
-                        .failureHandler((request, response, exception) -> {
-                            log.error("OAuth2 login failed: {}", exception.getMessage(), exception);
-                            response.sendRedirect("https://expense-tracker-frontend-aydi.onrender.com/login?error=oauth_failed");
-                        })
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

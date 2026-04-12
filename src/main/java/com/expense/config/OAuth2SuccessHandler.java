@@ -23,9 +23,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
 
-    // Must be a full absolute URL — e.g. http://localhost:3000/oauth2/redirect
+    // Resolves to: ${FRONTEND_BASE_URL}/oauth2/redirect
+    // Local:      http://localhost:3000/oauth2/redirect
+    // Production: https://expense-tracker-frontend-aydi.onrender.com/oauth2/redirect
     @Value("${app.frontend.redirect-url:https://expense-tracker-frontend-aydi.onrender.com/oauth2/redirect}")
     private String frontendRedirectUrl;
+
+    @Value("${app.frontend.base-url:https://expense-tracker-frontend-aydi.onrender.com}")
+    private String frontendBaseUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -35,28 +40,24 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
             String email = oAuth2User.getAttribute("email");
 
-            log.info("OAuth2 success handler: email={}", email);
+            log.info("OAuth2 success for: {}", email);
 
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
             String token = jwtUtil.generateToken(user);
-
-            // Build absolute URL explicitly — never use sendRedirect with a relative path
-            // as it will redirect to localhost:8080 instead of localhost:3000
             String targetUrl = frontendRedirectUrl + "?token=" + token;
 
-            log.info("Sending OAuth2 redirect to: {}", targetUrl.substring(0, Math.min(80, targetUrl.length())));
+            log.info("Redirecting to frontend: {}",
+                    targetUrl.substring(0, Math.min(80, targetUrl.length())));
 
-            // Clear the auth attributes to avoid session reuse
             clearAuthenticationAttributes(request);
-
-            // Use HttpServletResponse directly to guarantee the absolute URL is used
             response.sendRedirect(targetUrl);
 
         } catch (Exception e) {
             log.error("OAuth2 success handler failed: {}", e.getMessage(), e);
-            response.sendRedirect("https://expense-tracker-frontend-aydi.onrender.com/login?error=oauth_failed");
+            // Use the configured frontend URL, not hardcoded localhost
+            response.sendRedirect(frontendBaseUrl + "/login?error=oauth_failed");
         }
     }
 }
