@@ -51,7 +51,7 @@ public class OAuth2Config {
         // Build the redirect URI as a plain string — no template variables
         String redirectUri = backendBaseUrl + "/login/oauth2/code/google";
 
-        log.info("Registering Google OAuth2 with redirect URI: {}", redirectUri);
+        log.info("Registering Google OAuth2 with redirect URI: {https://expense-tracker-backend-j36l.onrender.com/login/oauth2/code/google}", redirectUri);
 
         ClientRegistration googleRegistration = ClientRegistration
                 .withRegistrationId("google")
