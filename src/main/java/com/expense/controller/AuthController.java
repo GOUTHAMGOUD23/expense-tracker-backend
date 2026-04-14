@@ -22,14 +22,14 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @Value("${BACKEND_BASE_URL:NOT_SET}")
+    @Value("${BACKEND_BASE_URL:https://expense-tracker-backend-j36l.onrender.com}")
     private String backendBaseUrl;
-
-    @Value("${spring.security.oauth2.client.registration.google.redirect-uri:NOT_SET}")
-    private String registeredRedirectUri;
 
     @Value("${app.frontend.redirect-url:NOT_SET}")
     private String frontendRedirectUrl;
+
+    @Value("${GOOGLE_CLIENT_ID:NOT_SET}")
+    private String googleClientId;
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
@@ -42,29 +42,31 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Map<String, Object>> getCurrentUser(
+            @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(authService.getCurrentUser(userDetails.getUsername()));
     }
 
     /**
-     * Debug endpoint — shows exactly what redirect URI the backend is using.
-     * Open in browser: https://your-backend.onrender.com/api/auth/oauth-debug
-     * The value shown under "registeredRedirectUri" must EXACTLY match
-     * what you have in Google Cloud Console.
+     * Open in browser to verify config:
+     * https://expense-tracker-backend-aydi.onrender.com/api/auth/oauth-debug
+     *
+     * Copy "redirectUriToAddInGoogleConsole" and paste it into:
+     * Google Cloud Console → APIs & Services → Credentials → Authorized redirect URIs
      */
     @GetMapping("/oauth-debug")
-    public ResponseEntity<Map<String, Object>> oauthDebug(HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> oauthDebug(HttpServletRequest req) {
+        String computedRedirectUri = backendBaseUrl + "/login/oauth2/code/google";
         Map<String, Object> info = new LinkedHashMap<>();
-        info.put("BACKEND_BASE_URL_env",     backendBaseUrl);
-        info.put("registeredRedirectUri",    registeredRedirectUri);
-        info.put("frontendRedirectUrl",      frontendRedirectUrl);
-        info.put("requestScheme",            request.getScheme());
-        info.put("requestServerName",        request.getServerName());
-        info.put("requestServerPort",        request.getServerPort());
-        info.put("X-Forwarded-Proto",        request.getHeader("X-Forwarded-Proto"));
-        info.put("X-Forwarded-Host",         request.getHeader("X-Forwarded-Host"));
-        info.put("instruction",
-                "Copy the value of 'registeredRedirectUri' and add it EXACTLY to Google Cloud Console → Authorized redirect URIs");
+        info.put("✅ redirectUriToAddInGoogleConsole", computedRedirectUri);
+        info.put("BACKEND_BASE_URL",        backendBaseUrl);
+        info.put("frontendRedirectUrl",     frontendRedirectUrl);
+        info.put("googleClientId_prefix",   googleClientId.length() > 10
+                ? googleClientId.substring(0, 10) + "..." : googleClientId);
+        info.put("requestScheme",           req.getScheme());
+        info.put("xForwardedProto",         req.getHeader("X-Forwarded-Proto"));
+        info.put("xForwardedHost",          req.getHeader("X-Forwarded-Host"));
+        info.put("serverName",              req.getServerName());
         return ResponseEntity.ok(info);
     }
 }
